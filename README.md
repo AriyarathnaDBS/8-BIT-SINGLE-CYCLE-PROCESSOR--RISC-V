@@ -1,36 +1,99 @@
-# 8-BIT SINGLE CYCLE PROCESSOR- RISC V
+## CO224 – Computer Architecture
+# Lab 5 – Building a Simple 8-bit Single-Cycle Processor
 
-## How to use the Programmer to load a program to the Simple Processor
+This repository contains the Verilog implementation and testbenches for Lab 5: Building a Simple Processor in CO224 – Computer Architecture, Department of Computer Engineering, University of Peradeniya.
+The lab guides the development of a simple 8-bit single-cycle processor that supports arithmetic, logical, move, load-immediate, jump, and branch-equal instructions. The processor is built in four parts: ALU, Register File, CPU Integration, and Flow Control Instructions, with an optional extended ISA.
 
-1.  Compile the "CO224Assembler.c" according to the instructions given in the C  
-    file and generate the executable named "CO224Assembler" (on Linux). Make sure
-    you keep the generated executable in the current directory. You need to do  
-    this only once as long as the Assembler code is kept unchanged.
-        Command: gcc CO224Assembler.c -o CO224Assembler
-2.  Run the Shell script "generate_memory_image.sh" while passing the assembly
-    program (your program.s file) as the only argument. There is a sample program
-    (sample_program.s) under "programs" sub-directory for your reference.
+## Project Overview
+The processor follows a single-cycle architecture, executing each instruction within one clock cycle (8 time units). Instructions follow a 32-bit fixed-length format:
+- [31–24] OP-CODE  
+- [23–16] RD / IMM  
+- [15–8]  RT  
+- [7–0]   RS / IMM  
 
-        Command: ./generate_memory_image.sh <assembly_file_name>
-                 (e.g. ./generate_memory_image.sh programs/sample_program.s)
+## Supported Instructions
+- Arithmetic & Logic: add, sub, and, or
+- Move & Immediate: mov, loadi
+- Control Flow: j, beq
+- Extended instructions: mult, sll, srl, sra, ror
+  
+## Part 1 – ALU 
+Implements an 8-bit ALU supporting:
+Features
+- Three-bit control signal SELECT (ALUOP).
+- Separate modules for each functional unit.
+- Realistic hardware delays (#1 or #2).
+- MUX-based result selection.
+- Thoroughly tested with Verilog testbench and GTKWave.
 
+## Part 2 – Register File 
+Implements an 8×8 register file:
+8 registers × 8 bits each
+Ports:
+  - IN (8-bit write data)
+  - OUT1, OUT2 (8-bit read outputs)
+  - INADDRESS, OUT1ADDRESS, OUT2ADDRESS (3-bit selectors)
+  - WRITE control signal
+  - CLK, RESET
 
-    This script ultimately generates a file named "instr_mem.mem" which contains
-    the machine code of your Assembly program formatted according to a standard
-    file format (.mem) supported by Verilog to initialize a memory array.
+Features:
+  - Asynchronous register read (#2 delay)
+  - Synchronous write (#1 delay)
+  - Synchronous reset (#1 delay)
+  - Thorough testing using a custom testbench + GTKWave
 
-3.  In your testbench of the CPU of Simple Processor, add a line to read the
-    generated memory content file and initialize the memory array you have
-    declared in the testbench for instruction memory.
+## Part 3 – CPU Integration
+Integrates ALU + Register File + Control Logic to form a working CPU.
+Components
+  - Instruction Fetching using hardcoded memory array (in testbench)
+Program Counter (PC) with:
+  - PC update delay: #1
+  - PC + 4 adder delay: #1
+  - Instruction Decode (#1 delay)
+  - Two’s complement unit for subtraction (#1 delay)
+Full control logic
+  - ALU and register file timing coordination
+  - Support for: add, sub, and, or, mov, loadi
+Programs assembled using the CO224Assembler and loaded into testbench memory.
 
-        Verilog syntax to initialize a memory array using the generated .mem file:
-            $readmemb("instr_mem.mem", instr_mem);
+## Part 4 – Flow Control Instructions 
+Adds microarchitectural support for:
+- jump (j)
+- branch if equal (beq)
+- Additions
+- ALU updated with ZERO flag
+- Added branch/jump target adder (#2 delay)
+- Modified control logic for PC redirection
 
+## Part 5 – Extended ISA (Optional Bonus 20 marks)
+Optional implementation of additional instructions such as:
+- mult, sll, srl, sra, ror, bne
+Requirements:
+- Must share ALU functional units
+- Must complete within 8 time units
+- Custom function units — no built-in shift/multiply operators
+- Must provide documentation and timing assumptions
 
-    A sample testbench that includes this syntax to read the .mem file is given
-    to you (cpu_tb.v). You may use it for the simulation of your Simple Processor.
+## How to Run Simulations
 
-(Note: As you may have already realized, once you have setup the files for the
-simulation by following above steps 1-3, you will only need to do step 2
-every-time you need to load a new program to the CPU - given that the Assembler
-program and the location of instr_mem.mem file remains unchanged)
+1. Compile Verilog Files
+
+Using Icarus Verilog:
+
+iverilog -o alu_tb part1_alu/*.v
+vvp alu_tb
+
+2. View Waveforms
+gtkwave dump.vcd
+
+3. Run CPU Programs
+iverilog -o cpu_tb part3_cpu/*.v
+vvp cpu_tb
+
+Instruction memory must be defined in the testbench (256 instructions max).
+
+## Tools Used
+- Verilog HDL
+- Icarus Verilog / ModelSim
+- GTKWave – waveform viewer
+- CO224Assembler – converts assembly → machine code
